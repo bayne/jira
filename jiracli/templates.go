@@ -195,6 +195,16 @@ func TemplateProcessor() *template.Template {
 		"wrap": func(width uint, content string) string {
 			return wordwrap.WrapString(content, width)
 		},
+		"sprint": func(content []interface{}) string {
+			re := regexp.MustCompile(`name=([^,]+)`)
+			matches := re.FindStringSubmatch(content[0].(string))
+
+			if len(matches) > 1 {
+				return matches[1]
+			} else {
+				return ""
+			}
+		},
 	}
 	return template.New("gojira").Funcs(sprig.GenericFuncMap()).Funcs(funcs)
 }
