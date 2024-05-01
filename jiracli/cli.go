@@ -112,6 +112,8 @@ type GlobalOptions struct {
 	// JiraDeploymentType can be `cloud` or `server`, if not set it will be inferred from
 	// the /rest/api/2/serverInfo REST API.
 	JiraDeploymentType figtree.StringOption `yaml:"jira-deployment-type,omitempty" json:"jira-deployment-type,omitempty"`
+
+	DefaultBoard figtree.StringOption `yaml:"default-board,omitempty" json:"default-board,omitempty"`
 }
 
 type CommonOptions struct {
@@ -155,8 +157,8 @@ func (o *GlobalOptions) AuthMethod() string {
 	return o.AuthenticationMethod.Value
 }
 
-func (o *GlobalOptions) AuthMethodIsToken() bool{
-	return o.AuthMethod() == "api-token" || o.AuthMethod() == "bearer-token";
+func (o *GlobalOptions) AuthMethodIsToken() bool {
+	return o.AuthMethod() == "api-token" || o.AuthMethod() == "bearer-token"
 }
 
 func register(app *kingpin.Application, o *oreo.Client, fig *figtree.FigTree) {
