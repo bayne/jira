@@ -20,6 +20,7 @@ func RegisterAllCommands() {
 	jiracli.RegisterCommand(jiracli.CommandRegistry{Command: "createmeta", Entry: CmdCreateMetaRegistry()})
 	jiracli.RegisterCommand(jiracli.CommandRegistry{Command: "sprints", Entry: CmdSprintsRegistry()})
 	jiracli.RegisterCommand(jiracli.CommandRegistry{Command: "current", Entry: CmdCurrentSprintRegistry()})
+	jiracli.RegisterCommand(jiracli.CommandRegistry{Command: "next", Entry: CmdNextSprintRegistry()})
 	jiracli.RegisterCommand(jiracli.CommandRegistry{Command: "activity", Entry: CmdActivityRegistry()})
 	jiracli.RegisterCommand(jiracli.CommandRegistry{Command: "done", Entry: CmdTransitionRegistry("Done")})
 	jiracli.RegisterCommand(jiracli.CommandRegistry{Command: "dup", Entry: CmdDupRegistry()})
