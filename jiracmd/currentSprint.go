@@ -8,6 +8,7 @@ import (
 	"github.com/go-jira/jira/jiradata"
 	"github.com/pkg/errors"
 	"gopkg.in/alecthomas/kingpin.v2"
+	"sort"
 	"strconv"
 )
 
@@ -57,6 +58,9 @@ func CmdCurrentSprint(o *oreo.Client, globals *jiracli.GlobalOptions, opts *Curr
 	issues, err := jira.Search(o, globals.Endpoint.Value, &jira.SearchOptions{
 		Query:       "sprint = " + strconv.Itoa(sprint.Id),
 		QueryFields: "assignee,created,priority,reporter,status,summary,updated,issuetype",
+	})
+	sort.Slice(issues.Issues, func(i, j int) bool {
+		return issues.Issues[i].Fields["status"].(map[string]interface{})["name"].(string) > issues.Issues[j].Fields["status"].(map[string]interface{})["name"].(string)
 	})
 	return opts.PrintTemplate(Current{
 		Sprint:        sprint,
