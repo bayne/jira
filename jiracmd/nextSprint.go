@@ -67,10 +67,10 @@ func CmdNextSprint(o *oreo.Client, globals *jiracli.GlobalOptions, opts *NextSpr
 	sprint := values[0]
 	issues, err := jira.Search(o, globals.Endpoint.Value, &jira.SearchOptions{
 		Query:       "sprint = " + strconv.Itoa(sprint.Id),
-		QueryFields: "assignee,created,customfield_10006,priority,reporter,status,summary,updated,issuetype",
+		QueryFields: "assignee,created,customfield_10006,priority,reporter,status,summary,updated,issuetype,customfield_10005",
 	})
 	sort.Slice(issues.Issues, func(i, j int) bool {
-		return issues.Issues[i].Fields["status"].(map[string]interface{})["name"].(string) > issues.Issues[j].Fields["status"].(map[string]interface{})["name"].(string)
+		return issues.Issues[i].Fields["customfield_10005"].(string) < issues.Issues[j].Fields["customfield_10005"].(string)
 	})
 	return opts.PrintTemplate(Next{
 		Sprint:        &sprint,
