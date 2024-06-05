@@ -8,14 +8,16 @@ import (
 	"strconv"
 )
 
-func Activity(ua HttpClient, endpoint string, maxResults int, streams string, issues string, providers string) (*jiradata.Feed, error) {
+func Activity(ua HttpClient, endpoint string, maxResults int, streams []string, issues string, providers string) (*jiradata.Feed, error) {
 	uri, err := url.Parse(URLJoin(endpoint, "activity"))
 	if err != nil {
 		return nil, err
 	}
 	params := url.Values{}
 	params.Set("maxResults", strconv.Itoa(maxResults))
-	params.Set("streams", streams)
+	for _, stream := range streams {
+		params.Add("streams", stream)
+	}
 	params.Set("issues", issues)
 	params.Set("providers", providers)
 	uri.RawQuery = params.Encode()

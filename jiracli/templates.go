@@ -197,6 +197,9 @@ func TemplateProcessor() *template.Template {
 		},
 		"sprint": func(content []interface{}) string {
 			re := regexp.MustCompile(`name=([^,]+)`)
+			if len(content) < 1 {
+				return ""
+			}
 			matches := re.FindStringSubmatch(content[0].(string))
 
 			if len(matches) > 1 {

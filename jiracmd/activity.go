@@ -14,10 +14,10 @@ import (
 
 type ActivityOptions struct {
 	jiracli.CommonOptions `yaml:",inline" json:",inline" figtree:",inline"`
-	MaxResults            int    `yaml:"max_results,omitempty" json:"max_results,omitempty"`
-	Streams               string `json:"streams,omitempty" yaml:"streams,omitempty"`
-	Issues                string `json:"issues,omitempty" yaml:"issues,omitempty"`
-	Providers             string `json:"providers,omitempty" yaml:"providers,omitempty"`
+	MaxResults            int      `yaml:"max_results,omitempty" json:"max_results,omitempty"`
+	Streams               []string `json:"streams,omitempty" yaml:"streams,omitempty"`
+	Issues                string   `json:"issues,omitempty" yaml:"issues,omitempty"`
+	Providers             string   `json:"providers,omitempty" yaml:"providers,omitempty"`
 }
 
 func CmdActivityRegistry() *jiracli.CommandRegistryEntry {
@@ -42,7 +42,7 @@ func CmdActivityRegistry() *jiracli.CommandRegistryEntry {
 func CmdActivityUsage(cmd *kingpin.CmdClause, opts *ActivityOptions) error {
 	jiracli.TemplateUsage(cmd, &opts.CommonOptions)
 	cmd.Flag("max-results", "max results").IntVar(&opts.MaxResults)
-	cmd.Flag("streams", "filters for the streams").StringVar(&opts.Streams)
+	cmd.Flag("streams", "filters for the streams").StringsVar(&opts.Streams)
 	cmd.Flag("issues", "filters for the issues").StringVar(&opts.Issues)
 	cmd.Flag("providers", "the providers").StringVar(&opts.Providers)
 	return nil
