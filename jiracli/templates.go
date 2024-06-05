@@ -313,6 +313,7 @@ func RunTemplate(templateName string, data interface{}, out io.Writer) error {
 }
 
 var AllTemplates = map[string]string{
+	"activity":       defaultActivityTemplate,
 	"attach-list":    defaultAttachListTemplate,
 	"comment":        defaultCommentTemplate,
 	"component-add":  defaultComponentAddTemplate,
@@ -330,6 +331,7 @@ var AllTemplates = map[string]string{
 	"json":           defaultDebugTemplate,
 	"list":           defaultListTemplate,
 	"request":        defaultDebugTemplate,
+	"sprint":         defaultSprintTemplate,
 	"subtask":        defaultSubtaskTemplate,
 	"table":          defaultTableTemplate,
 	"transition":     defaultTransitionTemplate,
@@ -655,3 +657,26 @@ const defaultWorklogsTemplate = `{{/* worklogs template */ -}}
   timeSpent: {{ .timeSpent }}
 
 {{end}}`
+
+const defaultActivityTemplate = `{{ range .Entries -}}
+    {{ .Published }} [{{ .Object.Title.Value }}]: {{ .Title.Value | abbrev 100 }}
+{{ end }}`
+
+const defaultSprintTemplate = `{{/* sprint template */ -}}
+Name: {{ .sprint.name }}
+Goal: {{ .sprint.goal }}
+Start: {{ .sprint.startDate }}
+End: {{ .sprint.endDate }}
+{{ headers "Issue" "Assignee" "Summary" "Type" "Status" "P" "Age" "Reporter" -}}
+{{- defaultColWidth 80 -}}
+{{- range .results.issues -}}
+{{- row -}}
+    {{- cell .key -}}
+    {{- if .fields.assignee -}} {{- cell (.fields.assignee.name | abbrev 8) -}} {{- else -}} {{- cell "-" -}} {{- end -}}
+    {{- cell (.fields.summary | abbrev 60) -}}
+    {{- cell .fields.issuetype.name -}}
+    {{- cell .fields.status.name -}}
+    {{- cell (or .fields.customfield_10006 "") -}}
+    {{- cell (.fields.created | age) -}}
+    {{- cell (.fields.reporter.name | abbrev 8) -}}
+{{- end -}}`
