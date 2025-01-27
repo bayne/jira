@@ -330,6 +330,7 @@ var AllTemplates = map[string]string{
 	"issuetypes":     defaultIssuetypesTemplate,
 	"json":           defaultDebugTemplate,
 	"list":           defaultListTemplate,
+	"mine":           defaultMineTemplate,
 	"request":        defaultDebugTemplate,
 	"sprint":         defaultSprintTemplate,
 	"subtask":        defaultSubtaskTemplate,
@@ -680,3 +681,13 @@ End: {{ .sprint.endDate }}
     {{- cell (.fields.created | age) -}}
     {{- cell (.fields.reporter.name | abbrev 8) -}}
 {{- end -}}`
+
+const defaultMineTemplate = `{{/* table template */ -}}
+{{$w := 80 -}}
++{{ "-" | rep 11 }}+{{ "-" | rep $w }}+{{ "-" | rep 14 }}+
+| {{ "Issue" | printf "%-9s" }} | {{ "Summary" | printf (printf "%%-%ds" (sub $w 2)) }} | {{ "Status" | printf "%-12s" }} |
++{{ "-" | rep 11 }}+{{ "-" | rep $w }}+{{ "-" | rep 14 }}+
+{{ range .issues -}}
+  | {{ .key | printf "%-9s"}} | {{ .fields.summary | abbrev (sub $w 2) | printf (printf "%%-%ds" (sub $w 2)) }} | {{.fields.status.name | printf "%-12s" }} |
+{{ end -}}
++{{ "-" | rep 11 }}+{{ "-" | rep $w }}+{{ "-" | rep 14 }}+`
