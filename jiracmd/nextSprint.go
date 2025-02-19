@@ -58,19 +58,16 @@ func CmdNextSprint(o *oreo.Client, globals *jiracli.GlobalOptions, opts *NextSpr
 	values := slices.DeleteFunc(data.Values, func(sprint jiradata.Sprint) bool {
 		return sprint.StartDate == ""
 	})
-	values = slices.DeleteFunc(values, func(sprint jiradata.Sprint) bool {
-		return strconv.Itoa(sprint.OriginBoardId) != globals.DefaultBoard.Value
-	})
 	sort.Slice(values, func(i, j int) bool {
 		return data.Values[i].StartDate < data.Values[j].StartDate
 	})
 	sprint := values[0]
 	issues, err := jira.Search(o, globals.Endpoint.Value, &jira.SearchOptions{
 		Query:       "sprint = " + strconv.Itoa(sprint.Id),
-		QueryFields: "assignee,created,customfield_10006,priority,reporter,status,summary,updated,issuetype,customfield_10005",
+		QueryFields: "assignee,created,Rank,priority,reporter,status,summary,updated,issuetype,customfield_10100",
 	})
 	sort.Slice(issues.Issues, func(i, j int) bool {
-		return issues.Issues[i].Fields["customfield_10005"].(string) < issues.Issues[j].Fields["customfield_10005"].(string)
+		return issues.Issues[i].Fields["customfield_10100"].(string) < issues.Issues[j].Fields["customfield_10100"].(string)
 	})
 	return opts.PrintTemplate(Next{
 		Sprint:        &sprint,
