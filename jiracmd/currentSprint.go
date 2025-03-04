@@ -57,7 +57,7 @@ func CmdCurrentSprint(o *oreo.Client, globals *jiracli.GlobalOptions, opts *Curr
 	sprint := &data.Values[0]
 	issues, err := jira.Search(o, globals.Endpoint.Value, &jira.SearchOptions{
 		Query:       "sprint = " + strconv.Itoa(sprint.Id),
-		QueryFields: "assignee,created,priority,customfield_10006,reporter,status,summary,updated,issuetype",
+		QueryFields: "assignee,created,priority,customfield_10006,reporter,status,summary,updated,issuetype,labels",
 	})
 	sort.Slice(issues.Issues, func(i, j int) bool {
 		return issues.Issues[i].Fields["status"].(map[string]interface{})["name"].(string) > issues.Issues[j].Fields["status"].(map[string]interface{})["name"].(string)
