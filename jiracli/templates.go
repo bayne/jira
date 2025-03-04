@@ -273,6 +273,7 @@ func RunTemplate(templateName string, data interface{}, out io.Writer) error {
 
 	table := tablewriter.NewWriter(out)
 	table.SetAutoFormatHeaders(false)
+	_ = table.SetUnicodeHV(tablewriter.Regular, tablewriter.Regular)
 	headers := []string{}
 	cells := [][]string{}
 	tmpl, err := TemplateProcessor().Funcs(map[string]interface{}{

@@ -12,7 +12,7 @@ require (
 	github.com/kballard/go-shellquote v0.0.0-20180428030007-95032a82bc51
 	github.com/mgutz/ansi v0.0.0-20170206155736-9520e82c474b
 	github.com/mitchellh/go-wordwrap v1.0.1
-	github.com/olekukonko/tablewriter v0.0.3
+	github.com/olekukonko/tablewriter v0.0.6-0.20230925090304-df64c4bbad77
 	github.com/pkg/browser v0.0.0-20170505125900-c90ca0c84f15
 	github.com/pkg/errors v0.8.0
 	github.com/stretchr/testify v1.2.2
@@ -45,8 +45,9 @@ require (
 	github.com/kr/pty v1.1.4 // indirect
 	github.com/mattn/go-colorable v0.0.9 // indirect
 	github.com/mattn/go-isatty v0.0.3 // indirect
-	github.com/mattn/go-runewidth v0.0.6 // indirect
+	github.com/mattn/go-runewidth v0.0.10 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
+	github.com/rivo/uniseg v0.1.0 // indirect
 	github.com/theckman/go-flock v0.4.0 // indirect
 	github.com/tidwall/match v1.0.0 // indirect
 	golang.org/x/sys v0.19.0 // indirect
