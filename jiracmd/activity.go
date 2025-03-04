@@ -70,7 +70,7 @@ func CmdActivity(o *oreo.Client, globals *jiracli.GlobalOptions, opts *ActivityO
 			return err
 		}
 
-		data.Entries[i].Published = utcTime.Local().Format("Mon, Jan 2 2006 3:04pm")
+		data.Entries[i].Published = utcTime.Local().Format("2006-01-02T15:04:05.000-0700")
 	}
 	if err := opts.PrintTemplate(data); err != nil {
 		return err
