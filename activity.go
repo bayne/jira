@@ -5,10 +5,11 @@ import (
 	"github.com/coryb/oreo"
 	"github.com/go-jira/jira/jiradata"
 	"net/url"
+	"sort"
 	"strconv"
 )
 
-func Activity(ua HttpClient, endpoint string, maxResults int, streams []string, issues string, providers string) (*jiradata.Feed, error) {
+func Activity(ua HttpClient, endpoint string, maxResults int, streams []string, issues string, providers string, asc bool) (*jiradata.Feed, error) {
 	uri, err := url.Parse(URLJoin(endpoint, "activity"))
 	if err != nil {
 		return nil, err
@@ -37,5 +38,12 @@ func Activity(ua HttpClient, endpoint string, maxResults int, streams []string, 
 	if err != nil {
 		return nil, err
 	}
+	sort.Slice(page.Entries, func(i, j int) bool {
+		if asc {
+			return page.Entries[i].Published < page.Entries[j].Published
+		} else {
+			return page.Entries[i].Published > page.Entries[j].Published
+		}
+	})
 	return page, nil
 }

@@ -18,6 +18,7 @@ type ActivityOptions struct {
 	Streams               []string `json:"streams,omitempty" yaml:"streams,omitempty"`
 	Issues                string   `json:"issues,omitempty" yaml:"issues,omitempty"`
 	Providers             string   `json:"providers,omitempty" yaml:"providers,omitempty"`
+	Asc                   bool     `json:"asc,omitempty" yaml:"asc,omitempty"`
 }
 
 func CmdActivityRegistry() *jiracli.CommandRegistryEntry {
@@ -45,11 +46,12 @@ func CmdActivityUsage(cmd *kingpin.CmdClause, opts *ActivityOptions) error {
 	cmd.Flag("streams", "filters for the streams").StringsVar(&opts.Streams)
 	cmd.Flag("issues", "filters for the issues").StringVar(&opts.Issues)
 	cmd.Flag("providers", "the providers").StringVar(&opts.Providers)
+	cmd.Flag("asc", "sort results by asc").BoolVar(&opts.Asc)
 	return nil
 }
 
 func CmdActivity(o *oreo.Client, globals *jiracli.GlobalOptions, opts *ActivityOptions) error {
-	data, err := jira.Activity(o, globals.Endpoint.Value, opts.MaxResults, opts.Streams, opts.Issues, opts.Providers)
+	data, err := jira.Activity(o, globals.Endpoint.Value, opts.MaxResults, opts.Streams, opts.Issues, opts.Providers, opts.Asc)
 	if err != nil {
 		return err
 	}
