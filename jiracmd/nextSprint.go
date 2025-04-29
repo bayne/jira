@@ -15,6 +15,7 @@ import (
 
 type NextSprintOptions struct {
 	jiracli.CommonOptions `yaml:",inline" json:",inline" figtree:",inline"`
+	Offset                figtree.Int8Option `yaml:"offset,omitempty" json:"offset,omitempty" figtree:"offset,omitempty"`
 }
 
 type Next struct {
@@ -27,6 +28,7 @@ func CmdNextSprintRegistry() *jiracli.CommandRegistryEntry {
 		CommonOptions: jiracli.CommonOptions{
 			Template: figtree.NewStringOption("sprint"),
 		},
+		Offset: figtree.NewInt8Option(0),
 	}
 
 	return &jiracli.CommandRegistryEntry{
@@ -44,6 +46,7 @@ func CmdNextSprintRegistry() *jiracli.CommandRegistryEntry {
 func CmdNextSprintUsage(cmd *kingpin.CmdClause, opts *NextSprintOptions, fig *figtree.FigTree) error {
 	jiracli.TemplateUsage(cmd, &opts.CommonOptions)
 	jiracli.GJsonQueryUsage(cmd, &opts.CommonOptions)
+	cmd.Flag("offset", "Select OFFSET sprint in the future").SetValue(&opts.Offset)
 	return nil
 }
 
@@ -61,7 +64,7 @@ func CmdNextSprint(o *oreo.Client, globals *jiracli.GlobalOptions, opts *NextSpr
 	sort.Slice(values, func(i, j int) bool {
 		return data.Values[i].StartDate < data.Values[j].StartDate
 	})
-	sprint := values[0]
+	sprint := values[opts.Offset.Value]
 	issues, err := jira.Search(o, globals.Endpoint.Value, &jira.SearchOptions{
 		Query:       "sprint = " + strconv.Itoa(sprint.Id),
 		QueryFields: "assignee,created,Rank,priority,reporter,status,summary,updated,issuetype,customfield_10100,labels",
