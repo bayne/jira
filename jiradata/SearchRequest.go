@@ -11,47 +11,48 @@ package jiradata
 /////////////////////////////////////////////////////////////////////////
 
 // SearchRequest defined from schema:
-// {
-//   "title": "Search Request",
-//   "id": "https://docs.atlassian.com/jira/REST/schema/search-request#",
-//   "type": "object",
-//   "properties": {
-//     "fields": {
-//       "title": "fields",
-//       "type": "array",
-//       "items": {
-//         "type": "string"
-//       }
-//     },
-//     "fieldsByKeys": {
-//       "title": "fieldsByKeys",
-//       "type": "boolean"
-//     },
-//     "jql": {
-//       "title": "jql",
-//       "type": "string"
-//     },
-//     "maxResults": {
-//       "title": "maxResults",
-//       "type": "integer"
-//     },
-//     "properties": {
-//       "title": "properties",
-//       "type": "array",
-//       "items": {
-//         "type": "string"
-//       }
-//     },
-//     "startAt": {
-//       "title": "startAt",
-//       "type": "integer"
-//     },
-//     "validateQuery": {
-//       "title": "validateQuery",
-//       "type": "string"
-//     }
-//   }
-// }
+//
+//	{
+//	  "title": "Search Request",
+//	  "id": "https://docs.atlassian.com/jira/REST/schema/search-request#",
+//	  "type": "object",
+//	  "properties": {
+//	    "fields": {
+//	      "title": "fields",
+//	      "type": "array",
+//	      "items": {
+//	        "type": "string"
+//	      }
+//	    },
+//	    "fieldsByKeys": {
+//	      "title": "fieldsByKeys",
+//	      "type": "boolean"
+//	    },
+//	    "jql": {
+//	      "title": "jql",
+//	      "type": "string"
+//	    },
+//	    "maxResults": {
+//	      "title": "maxResults",
+//	      "type": "integer"
+//	    },
+//	    "properties": {
+//	      "title": "properties",
+//	      "type": "array",
+//	      "items": {
+//	        "type": "string"
+//	      }
+//	    },
+//	    "startAt": {
+//	      "title": "startAt",
+//	      "type": "integer"
+//	    },
+//	    "validateQuery": {
+//	      "title": "validateQuery",
+//	      "type": "string"
+//	    }
+//	  }
+//	}
 type SearchRequest struct {
 	Fields        Fields     `json:"fields,omitempty" yaml:"fields,omitempty"`
 	FieldsByKeys  bool       `json:"fieldsByKeys,omitempty" yaml:"fieldsByKeys,omitempty"`
@@ -60,4 +61,5 @@ type SearchRequest struct {
 	Properties    Properties `json:"properties,omitempty" yaml:"properties,omitempty"`
 	StartAt       int        `json:"startAt,omitempty" yaml:"startAt,omitempty"`
 	ValidateQuery string     `json:"validateQuery,omitempty" yaml:"validateQuery,omitempty"`
+	Expand        []string   `json:"expand,omitempty" yaml:"expand,omitempty"`
 }

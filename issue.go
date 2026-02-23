@@ -246,68 +246,127 @@ func CreateIssue(ua HttpClient, endpoint string, iup IssueUpdateProvider) (*jira
 	return nil, responseError(resp)
 }
 
-// https://docs.atlassian.com/jira/REST/cloud/#api/2/issue-getCreateIssueMeta
 func (j *Jira) GetIssueCreateMetaProject(projectKey string) (*jiradata.CreateMetaProject, error) {
 	return GetIssueCreateMetaProject(j.UA, j.Endpoint, projectKey)
 }
 
 func GetIssueCreateMetaProject(ua HttpClient, endpoint string, projectKey string) (*jiradata.CreateMetaProject, error) {
-	uri := URLJoin(endpoint, "rest/api/2/issue/createmeta")
-	uri += fmt.Sprintf("?projectKeys=%s&expand=projects.issuetypes.fields", projectKey)
-	resp, err := ua.GetJSON(uri)
-	if err != nil {
-		return nil, err
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode == 200 {
-		results := &jiradata.CreateMeta{}
-		err = json.NewDecoder(resp.Body).Decode(results)
+	startAt := 0
+	total := 1
+	maxResults := 50
+	var allIssueTypes jiradata.IssueTypes
+	for startAt < total {
+		uri := URLJoin(endpoint, "rest/api/2/issue/createmeta", projectKey, "issuetypes")
+		uri += fmt.Sprintf("?startAt=%d&maxResults=%d", startAt, maxResults)
+		resp, err := ua.GetJSON(uri)
 		if err != nil {
 			return nil, err
 		}
-		for _, project := range results.Projects {
-			if project.Key == projectKey {
-				return project, nil
-			}
+		defer resp.Body.Close()
+
+		if resp.StatusCode != 200 {
+			return nil, responseError(resp)
 		}
-		return nil, fmt.Errorf("project %s not found", projectKey)
+		page := &jiradata.CreateMetaIssueTypesPage{}
+		if err := json.NewDecoder(resp.Body).Decode(page); err != nil {
+			return nil, err
+		}
+		allIssueTypes = append(allIssueTypes, page.Values...)
+		total = page.Total
+		startAt += maxResults
 	}
-	return nil, responseError(resp)
+	return &jiradata.CreateMetaProject{
+		Key:        projectKey,
+		IssueTypes: allIssueTypes,
+	}, nil
 }
 
-// https://docs.atlassian.com/jira/REST/cloud/#api/2/issue-getCreateIssueMeta
 func (j *Jira) GetIssueCreateMetaIssueType(projectKey, issueTypeName string) (*jiradata.IssueType, error) {
 	return GetIssueCreateMetaIssueType(j.UA, j.Endpoint, projectKey, issueTypeName)
 }
 
 func GetIssueCreateMetaIssueType(ua HttpClient, endpoint string, projectKey, issueTypeName string) (*jiradata.IssueType, error) {
-	uri := URLJoin(endpoint, "rest/api/2/issue/createmeta")
-	uri += fmt.Sprintf("?projectKeys=%s&issuetypeNames=%s&expand=projects.issuetypes.fields", projectKey, url.QueryEscape(issueTypeName))
-	resp, err := ua.GetJSON(uri)
+	issueType, err := findIssueTypeByName(ua, endpoint, projectKey, issueTypeName)
 	if err != nil {
 		return nil, err
 	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != 200 {
-		return nil, responseError(resp)
-	}
-	results := &jiradata.CreateMeta{}
-	if err := json.NewDecoder(resp.Body).Decode(results); err != nil {
+	fieldMap, err := fetchIssueTypeFields(ua, endpoint, projectKey, issueType.ID)
+	if err != nil {
 		return nil, err
 	}
-	for _, project := range results.Projects {
-		if project.Key != projectKey {
-			continue
+	issueType.Fields = fieldMap
+	return issueType, nil
+}
+
+func findIssueTypeByName(ua HttpClient, endpoint string, projectKey, name string) (*jiradata.IssueType, error) {
+	startAt := 0
+	total := 1
+	maxResults := 50
+	for startAt < total {
+		uri := URLJoin(endpoint, "rest/api/2/issue/createmeta", projectKey, "issuetypes")
+		uri += fmt.Sprintf("?startAt=%d&maxResults=%d", startAt, maxResults)
+		resp, err := ua.GetJSON(uri)
+		if err != nil {
+			return nil, err
 		}
-		for _, issueType := range project.IssueTypes {
-			if issueType.Name == issueTypeName {
-				return issueType, nil
+		defer resp.Body.Close()
+
+		if resp.StatusCode != 200 {
+			return nil, responseError(resp)
+		}
+		page := &jiradata.CreateMetaIssueTypesPage{}
+		if err := json.NewDecoder(resp.Body).Decode(page); err != nil {
+			return nil, err
+		}
+		for _, it := range page.Values {
+			if it.Name == name {
+				return it, nil
 			}
 		}
+		total = page.Total
+		startAt += maxResults
 	}
-	return nil, fmt.Errorf("project %s and IssueType %s not found", projectKey, issueTypeName)
+	return nil, fmt.Errorf("issue type %s not found in project %s", name, projectKey)
+}
+
+func fetchIssueTypeFields(ua HttpClient, endpoint string, projectKey, issueTypeID string) (jiradata.FieldMetaMap, error) {
+	startAt := 0
+	total := 1
+	maxResults := 50
+	fieldMap := jiradata.FieldMetaMap{}
+	for startAt < total {
+		uri := URLJoin(endpoint, "rest/api/2/issue/createmeta", projectKey, "issuetypes", issueTypeID)
+		uri += fmt.Sprintf("?startAt=%d&maxResults=%d", startAt, maxResults)
+		resp, err := ua.GetJSON(uri)
+		if err != nil {
+			return nil, err
+		}
+		defer resp.Body.Close()
+
+		if resp.StatusCode != 200 {
+			return nil, responseError(resp)
+		}
+		page := &jiradata.CreateMetaFieldsPage{}
+		if err := json.NewDecoder(resp.Body).Decode(page); err != nil {
+			return nil, err
+		}
+		for _, f := range page.Values {
+			fieldMap[f.FieldId] = &jiradata.FieldMeta{
+				AllowedValues:   f.AllowedValues,
+				AutoCompleteURL: f.AutoCompleteURL,
+				DefaultValue:    f.DefaultValue,
+				HasDefaultValue: f.HasDefaultValue,
+				Key:             f.FieldId,
+				Name:            f.Name,
+				Operations:      f.Operations,
+				Required:        f.Required,
+				Schema:          f.Schema,
+			}
+		}
+		total = page.Total
+		startAt += maxResults
+	}
+	return fieldMap, nil
 }
 
 type LinkIssueProvider interface {
