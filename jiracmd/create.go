@@ -3,6 +3,7 @@ package jiracmd
 import (
 	"fmt"
 	"os"
+	"sort"
 	"strings"
 
 	"github.com/coryb/figtree"
@@ -77,6 +78,7 @@ func CmdCreate(o *oreo.Client, globals *jiracli.GlobalOptions, opts *CreateOptio
 	type templateInput struct {
 		Meta      *jiradata.IssueType `yaml:"meta" json:"meta"`
 		Overrides map[string]string   `yaml:"overrides" json:"overrides"`
+		Sprints   []jiradata.Sprint   `yaml:"sprints" json:"sprints"`
 	}
 
 	if err := defaultIssueType(o, globals.Endpoint.Value, &opts.Project, &opts.IssueType); err != nil {
@@ -87,10 +89,30 @@ func CmdCreate(o *oreo.Client, globals *jiracli.GlobalOptions, opts *CreateOptio
 		return err
 	}
 
+	var sprints []jiradata.Sprint
+	if globals.DefaultBoard.Value != "" {
+		activeSprints, err := jira.Sprints(o, globals.Endpoint.Value, globals.DefaultBoard.Value, []string{"active"})
+		if err == nil {
+			sprints = append(sprints, activeSprints.Values...)
+		}
+		futureSprints, err := jira.Sprints(o, globals.Endpoint.Value, globals.DefaultBoard.Value, []string{"future"})
+		if err == nil {
+			sort.Slice(futureSprints.Values, func(i, j int) bool {
+				return futureSprints.Values[i].StartDate < futureSprints.Values[j].StartDate
+			})
+			limit := 2
+			if len(futureSprints.Values) < limit {
+				limit = len(futureSprints.Values)
+			}
+			sprints = append(sprints, futureSprints.Values[:limit]...)
+		}
+	}
+
 	issueUpdate := jiradata.IssueUpdate{}
 	input := templateInput{
 		Meta:      createMeta,
 		Overrides: opts.Overrides,
+		Sprints:   sprints,
 	}
 	input.Overrides["project"] = opts.Project
 	if opts.Summary != "" {
