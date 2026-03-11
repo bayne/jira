@@ -102,6 +102,7 @@ func CmdEdit(o *oreo.Client, globals *jiracli.GlobalOptions, opts *EditOptions) 
 			Overrides: opts.Overrides,
 		}
 		err = jiracli.EditLoop(&opts.CommonOptions, &input, &issueUpdate, func() error {
+			applyFieldMappings(&issueUpdate)
 			if globals.JiraDeploymentType.Value == jiracli.CloudDeploymentType {
 				err := fixGDPRUserFields(o, globals.Endpoint.Value, editMeta.Fields, issueUpdate.Fields)
 				if err != nil {
@@ -138,6 +139,7 @@ func CmdEdit(o *oreo.Client, globals *jiracli.GlobalOptions, opts *EditOptions) 
 			Overrides: opts.Overrides,
 		}
 		err = jiracli.EditLoop(&opts.CommonOptions, &input, &issueUpdate, func() error {
+			applyFieldMappings(&issueUpdate)
 			if globals.JiraDeploymentType.Value == jiracli.CloudDeploymentType {
 				err := fixGDPRUserFields(o, globals.Endpoint.Value, editMeta.Fields, issueUpdate.Fields)
 				if err != nil {

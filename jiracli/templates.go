@@ -66,6 +66,21 @@ func tmpTemplate(templateName string, data interface{}) (string, error) {
 	return tmpFile.Name(), RunTemplate(templateName, data, tmpFile)
 }
 
+// cachedFieldMap holds a lazily-loaded field map for template functions.
+var cachedFieldMap *FieldMap
+
+func getFieldMap() *FieldMap {
+	if cachedFieldMap != nil {
+		return cachedFieldMap
+	}
+	fm, err := LoadFieldMap()
+	if err != nil {
+		return nil
+	}
+	cachedFieldMap = fm
+	return cachedFieldMap
+}
+
 func TemplateProcessor() *template.Template {
 	funcs := map[string]interface{}{
 		"jira": func() string {
@@ -207,6 +222,40 @@ func TemplateProcessor() *template.Template {
 			} else {
 				return ""
 			}
+		},
+		"fieldLabel": func(fieldID string) string {
+			if fm := getFieldMap(); fm != nil {
+				return fm.FieldLabelForID(fieldID)
+			}
+			return fieldID
+		},
+		"fieldKey": func(fieldID string) string {
+			if fm := getFieldMap(); fm != nil {
+				return fm.FieldKeyForID(fieldID)
+			}
+			return fieldID
+		},
+		"fieldID": func(key string) string {
+			if fm := getFieldMap(); fm != nil {
+				return fm.FieldIDForKey(key)
+			}
+			return key
+		},
+		"optionLabel": func(fieldID, optionID string) string {
+			if fm := getFieldMap(); fm != nil {
+				return fm.OptionLabelForID(fieldID, optionID)
+			}
+			return optionID
+		},
+		"optionKey": func(fieldID, optionID string) string {
+			if fm := getFieldMap(); fm != nil {
+				if mapping, ok := fm.Fields[fieldID]; ok && mapping.Options != nil {
+					if opt, ok := mapping.Options[optionID]; ok {
+						return opt.Key
+					}
+				}
+			}
+			return optionID
 		},
 	}
 	return template.New("gojira").Funcs(sprig.GenericFuncMap()).Funcs(funcs)

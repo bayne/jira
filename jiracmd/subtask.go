@@ -110,6 +110,7 @@ func CmdSubtask(o *oreo.Client, globals *jiracli.GlobalOptions, opts *SubtaskOpt
 
 	var issueResp *jiradata.IssueCreateResponse
 	err = jiracli.EditLoop(&opts.CommonOptions, &input, &issueUpdate, func() error {
+		applyFieldMappings(&issueUpdate)
 		if globals.JiraDeploymentType.Value == jiracli.CloudDeploymentType {
 			err := fixGDPRUserFields(o, globals.Endpoint.Value, createMeta.Fields, issueUpdate.Fields)
 			if err != nil {

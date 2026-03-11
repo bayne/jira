@@ -126,11 +126,13 @@ func CmdCreate(o *oreo.Client, globals *jiracli.GlobalOptions, opts *CreateOptio
 	fnameOptsFile = opts.File.String()
 	if fnameOptsFile != "" {
 		err = jiracli.ReadYmlInputFile(&opts.CommonOptions, &input, &issueUpdate, func() error {
+			applyFieldMappings(&issueUpdate)
 			issueResp, err = jira.CreateIssue(o, globals.Endpoint.Value, &issueUpdate)
 			return err
 		})
 	} else {
 		err = jiracli.EditLoop(&opts.CommonOptions, &input, &issueUpdate, func() error {
+			applyFieldMappings(&issueUpdate)
 			if globals.JiraDeploymentType.Value == jiracli.CloudDeploymentType {
 				err := fixGDPRUserFields(o, globals.Endpoint.Value, createMeta.Fields, issueUpdate.Fields)
 				if err != nil {

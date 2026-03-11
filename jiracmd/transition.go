@@ -159,6 +159,7 @@ func CmdTransition(o *oreo.Client, globals *jiracli.GlobalOptions, opts *Transit
 		Overrides:  opts.Overrides,
 	}
 	err = jiracli.EditLoop(&opts.CommonOptions, &input, &issueUpdate, func() error {
+		applyFieldMappings(&issueUpdate)
 		if globals.JiraDeploymentType.Value == jiracli.CloudDeploymentType {
 			err := fixGDPRUserFields(o, globals.Endpoint.Value, transMeta.Fields, issueUpdate.Fields)
 			if err != nil {

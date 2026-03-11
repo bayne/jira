@@ -32,6 +32,7 @@ func RegisterAllCommands() {
 	jiracli.RegisterCommand(jiracli.CommandRegistry{Command: "epic remove", Entry: CmdEpicRemoveRegistry(), Aliases: []string{"rm"}})
 	jiracli.RegisterCommand(jiracli.CommandRegistry{Command: "export-templates", Entry: CmdExportTemplatesRegistry()})
 	jiracli.RegisterCommand(jiracli.CommandRegistry{Command: "fields", Entry: CmdFieldsRegistry()})
+	jiracli.RegisterCommand(jiracli.CommandRegistry{Command: "fields-map", Entry: CmdFieldsMapRegistry()})
 	jiracli.RegisterCommand(jiracli.CommandRegistry{Command: "in-progress", Entry: CmdTransitionRegistry("Progress"), Aliases: []string{"prog", "progress"}})
 	jiracli.RegisterCommand(jiracli.CommandRegistry{Command: "issuelink", Entry: CmdIssueLinkRegistry()})
 	jiracli.RegisterCommand(jiracli.CommandRegistry{Command: "issuelinktypes", Entry: CmdIssueLinkTypesRegistry()})
