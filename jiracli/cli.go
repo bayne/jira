@@ -114,6 +114,7 @@ type GlobalOptions struct {
 	JiraDeploymentType figtree.StringOption `yaml:"jira-deployment-type,omitempty" json:"jira-deployment-type,omitempty"`
 
 	DefaultBoard figtree.StringOption `yaml:"default-board,omitempty" json:"default-board,omitempty"`
+	SprintPrefix figtree.StringOption `yaml:"sprint-prefix,omitempty" json:"sprint-prefix,omitempty"`
 }
 
 type CommonOptions struct {

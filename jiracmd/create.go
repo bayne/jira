@@ -100,11 +100,29 @@ func CmdCreate(o *oreo.Client, globals *jiracli.GlobalOptions, opts *CreateOptio
 			sort.Slice(futureSprints.Values, func(i, j int) bool {
 				return futureSprints.Values[i].StartDate < futureSprints.Values[j].StartDate
 			})
-			limit := 2
+			if globals.SprintPrefix.Value != "" {
+				filtered := []jiradata.Sprint{}
+				for _, s := range futureSprints.Values {
+					if strings.HasPrefix(s.Name, globals.SprintPrefix.Value) {
+						filtered = append(filtered, s)
+					}
+				}
+				futureSprints.Values = filtered
+			}
+			limit := 5
 			if len(futureSprints.Values) < limit {
 				limit = len(futureSprints.Values)
 			}
 			sprints = append(sprints, futureSprints.Values[:limit]...)
+		}
+		if globals.SprintPrefix.Value != "" {
+			filtered := []jiradata.Sprint{}
+			for _, s := range sprints {
+				if strings.HasPrefix(s.Name, globals.SprintPrefix.Value) {
+					filtered = append(filtered, s)
+				}
+			}
+			sprints = filtered
 		}
 	}
 
