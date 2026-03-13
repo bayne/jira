@@ -2,6 +2,7 @@ package jiracmd
 
 import (
 	"fmt"
+	"sort"
 	"strings"
 
 	"github.com/coryb/figtree"
@@ -84,7 +85,46 @@ func CmdEdit(o *oreo.Client, globals *jiracli.GlobalOptions, opts *EditOptions) 
 		*jiradata.Issue `yaml:",inline"`
 		Meta            *jiradata.EditMeta `yaml:"meta" json:"meta"`
 		Overrides       map[string]string  `yaml:"overrides" json:"overrides"`
+		Sprints         []jiradata.Sprint  `yaml:"sprints" json:"sprints"`
 	}
+
+	var sprints []jiradata.Sprint
+	if globals.DefaultBoard.Value != "" {
+		activeSprints, err := jira.Sprints(o, globals.Endpoint.Value, globals.DefaultBoard.Value, []string{"active"})
+		if err == nil {
+			sprints = append(sprints, activeSprints.Values...)
+		}
+		futureSprints, err := jira.Sprints(o, globals.Endpoint.Value, globals.DefaultBoard.Value, []string{"future"})
+		if err == nil {
+			sort.Slice(futureSprints.Values, func(i, j int) bool {
+				return futureSprints.Values[i].StartDate < futureSprints.Values[j].StartDate
+			})
+			if globals.SprintPrefix.Value != "" {
+				filtered := []jiradata.Sprint{}
+				for _, s := range futureSprints.Values {
+					if strings.HasPrefix(s.Name, globals.SprintPrefix.Value) {
+						filtered = append(filtered, s)
+					}
+				}
+				futureSprints.Values = filtered
+			}
+			limit := 5
+			if len(futureSprints.Values) < limit {
+				limit = len(futureSprints.Values)
+			}
+			sprints = append(sprints, futureSprints.Values[:limit]...)
+		}
+		if globals.SprintPrefix.Value != "" {
+			filtered := []jiradata.Sprint{}
+			for _, s := range sprints {
+				if strings.HasPrefix(s.Name, globals.SprintPrefix.Value) {
+					filtered = append(filtered, s)
+				}
+			}
+			sprints = filtered
+		}
+	}
+
 	if opts.Issue != "" {
 		issueData, err := jira.GetIssue(o, globals.Endpoint.Value, opts.Issue, nil)
 		if err != nil {
@@ -100,6 +140,7 @@ func CmdEdit(o *oreo.Client, globals *jiracli.GlobalOptions, opts *EditOptions) 
 			Issue:     issueData,
 			Meta:      editMeta,
 			Overrides: opts.Overrides,
+			Sprints:   sprints,
 		}
 		err = jiracli.EditLoop(&opts.CommonOptions, &input, &issueUpdate, func() error {
 			applyFieldMappings(&issueUpdate)
@@ -137,6 +178,7 @@ func CmdEdit(o *oreo.Client, globals *jiracli.GlobalOptions, opts *EditOptions) 
 			Issue:     issueData,
 			Meta:      editMeta,
 			Overrides: opts.Overrides,
+			Sprints:   sprints,
 		}
 		err = jiracli.EditLoop(&opts.CommonOptions, &input, &issueUpdate, func() error {
 			applyFieldMappings(&issueUpdate)
