@@ -72,6 +72,9 @@ func CmdNextSprint(o *oreo.Client, globals *jiracli.GlobalOptions, opts *NextSpr
 	sort.Slice(issues.Issues, func(i, j int) bool {
 		return issues.Issues[i].Fields["customfield_10100"].(string) < issues.Issues[j].Fields["customfield_10100"].(string)
 	})
+	if globals.Download.Value {
+		return downloadSearchResults(o, globals, issues)
+	}
 	return opts.PrintTemplate(Next{
 		Sprint:        &sprint,
 		SearchResults: issues,

@@ -62,6 +62,9 @@ func CmdCurrentSprint(o *oreo.Client, globals *jiracli.GlobalOptions, opts *Curr
 	sort.Slice(issues.Issues, func(i, j int) bool {
 		return issues.Issues[i].Fields["status"].(map[string]interface{})["name"].(string) > issues.Issues[j].Fields["status"].(map[string]interface{})["name"].(string)
 	})
+	if globals.Download.Value {
+		return downloadSearchResults(o, globals, issues)
+	}
 	return opts.PrintTemplate(Current{
 		Sprint:        sprint,
 		SearchResults: issues,

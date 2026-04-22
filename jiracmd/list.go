@@ -2,11 +2,14 @@ package jiracmd
 
 import (
 	"fmt"
+	"os"
+	"path/filepath"
 
 	"github.com/coryb/figtree"
 	"github.com/coryb/oreo"
 	"github.com/go-jira/jira"
 	"github.com/go-jira/jira/jiracli"
+	"github.com/go-jira/jira/jiradata"
 	kingpin "gopkg.in/alecthomas/kingpin.v2"
 )
 
@@ -73,5 +76,40 @@ func CmdList(o *oreo.Client, globals *jiracli.GlobalOptions, opts *ListOptions) 
 	if err != nil {
 		return err
 	}
+	if globals.Download.Value {
+		return downloadSearchResults(o, globals, data)
+	}
 	return opts.PrintTemplate(data)
+}
+
+// downloadSearchResults fetches the full issue for each result and saves
+// each one to a file inside a "jira-download" subdirectory.
+func downloadSearchResults(o *oreo.Client, globals *jiracli.GlobalOptions, data *jiradata.SearchResults) error {
+	if len(data.Issues) == 0 {
+		fmt.Fprintln(os.Stderr, "No issues to download")
+		return nil
+	}
+
+	dir := "jira-download"
+	if err := os.MkdirAll(dir, 0755); err != nil {
+		return err
+	}
+
+	for _, issue := range data.Issues {
+		if issue.Key == "" {
+			continue
+		}
+		// Fetch the full issue
+		fullIssue, err := jira.GetIssue(o, globals.Endpoint.Value, issue.Key, nil)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Warning: failed to fetch %s: %s\n", issue.Key, err)
+			continue
+		}
+		filename := filepath.Join(dir, issue.Key)
+		if err := jiracli.DownloadToFile(filename, "view", fullIssue); err != nil {
+			return err
+		}
+	}
+	fmt.Fprintf(os.Stderr, "Downloaded %d issues to %s/\n", len(data.Issues), dir)
+	return nil
 }

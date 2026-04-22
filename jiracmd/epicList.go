@@ -55,5 +55,8 @@ func CmdEpicList(o *oreo.Client, globals *jiracli.GlobalOptions, opts *EpicListO
 	if err != nil {
 		return err
 	}
+	if globals.Download.Value {
+		return downloadSearchResults(o, globals, data)
+	}
 	return opts.PrintTemplate(data)
 }

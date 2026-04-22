@@ -115,6 +115,11 @@ type GlobalOptions struct {
 
 	DefaultBoard figtree.StringOption `yaml:"default-board,omitempty" json:"default-board,omitempty"`
 	SprintPrefix figtree.StringOption `yaml:"sprint-prefix,omitempty" json:"sprint-prefix,omitempty"`
+
+	// Download will save the command output to files instead of stdout.
+	// For single results, saves to a file in the current directory.
+	// For list results, creates a subdirectory and fetches/saves each issue.
+	Download figtree.BoolOption `yaml:"download,omitempty" json:"download,omitempty"`
 }
 
 type CommonOptions struct {
@@ -174,6 +179,7 @@ func register(app *kingpin.Application, o *oreo.Client, fig *figtree.FigTree) {
 	app.Flag("socksproxy", "Address for a socks proxy").SetValue(&globals.SocksProxy)
 	app.Flag("user", "user name used within the Jira service").Short('u').SetValue(&globals.User)
 	app.Flag("login", "login name that corresponds to the user used for authentication").SetValue(&globals.Login)
+	app.Flag("download", "Download results to files in current directory").Short('D').SetValue(&globals.Download)
 
 	o = o.WithPreCallback(func(req *http.Request) (*http.Request, error) {
 		if globals.AuthMethod() == "api-token" {
