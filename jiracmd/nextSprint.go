@@ -19,8 +19,9 @@ type NextSprintOptions struct {
 }
 
 type Next struct {
-	SearchResults *jiradata.SearchResults `yaml:"results,inline" json:"results,inline" figtree:"results,inline"`
-	Sprint        *jiradata.Sprint        `yaml:"sprint,inline" json:"sprint,inline" figtree:"sprint,inline"`
+	SearchResults     *jiradata.SearchResults `yaml:"results,inline" json:"results,inline" figtree:"results,inline"`
+	Sprint            *jiradata.Sprint        `yaml:"sprint,inline" json:"sprint,inline" figtree:"sprint,inline"`
+	PointDistribution []PointAllocation       `yaml:"point_distribution" json:"point_distribution"`
 }
 
 func CmdNextSprintRegistry() *jiracli.CommandRegistryEntry {
@@ -67,8 +68,8 @@ func CmdNextSprint(o *oreo.Client, globals *jiracli.GlobalOptions, opts *NextSpr
 	sprint := values[opts.Offset.Value]
 	issues, err := jira.Search(o, globals.Endpoint.Value, &jira.SearchOptions{
 		Query:       "sprint = " + strconv.Itoa(sprint.Id),
-		QueryFields: "assignee,created,Rank,priority,reporter,status,summary,updated,issuetype,customfield_10100,labels",
-	})
+		QueryFields: "assignee,created,Rank,priority,customfield_10105,customfield_10106,reporter,status,summary,updated,issuetype,customfield_10100,labels",
+	}, jira.WithExpand("changelog"))
 	sort.Slice(issues.Issues, func(i, j int) bool {
 		return issues.Issues[i].Fields["customfield_10100"].(string) < issues.Issues[j].Fields["customfield_10100"].(string)
 	})
@@ -76,7 +77,8 @@ func CmdNextSprint(o *oreo.Client, globals *jiracli.GlobalOptions, opts *NextSpr
 		return downloadSearchResults(o, globals, issues)
 	}
 	return opts.PrintTemplate(Next{
-		Sprint:        &sprint,
-		SearchResults: issues,
+		Sprint:            &sprint,
+		SearchResults:     issues,
+		PointDistribution: computePointDistribution(issues.Issues),
 	})
 }

@@ -14,17 +14,17 @@ type SearchProvider interface {
 }
 
 type SearchOptions struct {
-	Assignee    string `yaml:"assignee,omitempty" json:"assignee,omitempty"`
-	Query       string `yaml:"query,omitempty" json:"query,omitempty"`
-	QueryFields string `yaml:"query-fields,omitempty" json:"query-fields,omitempty"`
-	Project     string `yaml:"project,omitempty" json:"project,omitempty"`
-	Component   string `yaml:"component,omitempty" json:"component,omitempty"`
-	IssueType   string `yaml:"issue-type,omitempty" json:"issue-type,omitempty"`
-	Watcher     string `yaml:"watcher,omitempty" json:"watcher,omitempty"`
-	Reporter    string `yaml:"reporter,omitempty" json:"reporter,omitempty"`
-	Status      string `yaml:"status,omitempty" json:"status,omitempty"`
-	Sort        string `yaml:"sort,omitempty" json:"sort,omitempty"`
-	MaxResults  int    `yaml:"max-results,omitempty" json:"max-results,omitempty"`
+	Assignee    string   `yaml:"assignee,omitempty" json:"assignee,omitempty"`
+	Query       string   `yaml:"query,omitempty" json:"query,omitempty"`
+	QueryFields string   `yaml:"query-fields,omitempty" json:"query-fields,omitempty"`
+	Project     string   `yaml:"project,omitempty" json:"project,omitempty"`
+	Component   string   `yaml:"component,omitempty" json:"component,omitempty"`
+	IssueType   string   `yaml:"issue-type,omitempty" json:"issue-type,omitempty"`
+	Watcher     string   `yaml:"watcher,omitempty" json:"watcher,omitempty"`
+	Reporter    string   `yaml:"reporter,omitempty" json:"reporter,omitempty"`
+	Status      string   `yaml:"status,omitempty" json:"status,omitempty"`
+	Sort        string   `yaml:"sort,omitempty" json:"sort,omitempty"`
+	MaxResults int `yaml:"max-results,omitempty" json:"max-results,omitempty"`
 }
 
 func (o *SearchOptions) ProvideSearchRequest() *jiradata.SearchRequest {
@@ -79,6 +79,7 @@ func (j *Jira) Search(sp SearchProvider, opts ...SearchOpt) (*jiradata.SearchRes
 
 type searchConfig struct {
 	autoPaginate bool
+	expand       []string
 }
 
 type SearchOpt func(*searchConfig)
@@ -86,6 +87,12 @@ type SearchOpt func(*searchConfig)
 func WithAutoPagination() SearchOpt {
 	return func(c *searchConfig) {
 		c.autoPaginate = true
+	}
+}
+
+func WithExpand(fields ...string) SearchOpt {
+	return func(c *searchConfig) {
+		c.expand = append(c.expand, fields...)
 	}
 }
 
@@ -109,6 +116,9 @@ func Search(ua HttpClient, endpoint string, sp SearchProvider, opts ...SearchOpt
 			return nil, err
 		}
 		uri := URLJoin(endpoint, "rest/api/2/search")
+		if len(c.expand) > 0 {
+			uri += "?expand=" + strings.Join(c.expand, ",")
+		}
 		resp, err := ua.Post(uri, "application/json", bytes.NewBuffer(encoded))
 		if err != nil {
 			return nil, err

@@ -727,10 +727,14 @@ End: {{ .sprint.endDate }}
     {{- cell (.fields.summary | abbrev 60) -}}
     {{- cell .fields.issuetype.name -}}
     {{- cell .fields.status.name -}}
-    {{- cell (or .fields.customfield_10006 "") -}}
+    {{- cell (or .fields.customfield_10106 "") -}}
     {{- cell (.fields.created | age) -}}
     {{- cell (.fields.reporter.name | abbrev 8) -}}
-{{- end -}}`
+{{- end -}}
+{{ if .point_distribution }}
+Point Distribution:
+{{ range .point_distribution }}  {{ .name | printf "%-20s" }} {{ .points | printf "%3d" }}
+{{ end }}{{ end -}}`
 
 const defaultMineTemplate = `{{/* table template */ -}}
 {{$w := 80 -}}
