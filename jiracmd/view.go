@@ -53,7 +53,7 @@ func CmdView(o *oreo.Client, globals *jiracli.GlobalOptions, opts *ViewOptions) 
 		return err
 	}
 	if globals.Download.Value {
-		if err := jiracli.DownloadToFile(opts.Issue, opts.Template.Value, data); err != nil {
+		if err := jiracli.DownloadToFile(opts.Issue, data); err != nil {
 			return err
 		}
 	} else {

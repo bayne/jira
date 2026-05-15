@@ -83,7 +83,7 @@ func CmdList(o *oreo.Client, globals *jiracli.GlobalOptions, opts *ListOptions) 
 }
 
 // downloadSearchResults fetches the full issue for each result and saves
-// each one to a file inside a "jira-download" subdirectory.
+// each one as JSON inside a "jira-download" subdirectory.
 func downloadSearchResults(o *oreo.Client, globals *jiracli.GlobalOptions, data *jiradata.SearchResults) error {
 	if len(data.Issues) == 0 {
 		fmt.Fprintln(os.Stderr, "No issues to download")
@@ -99,14 +99,13 @@ func downloadSearchResults(o *oreo.Client, globals *jiracli.GlobalOptions, data 
 		if issue.Key == "" {
 			continue
 		}
-		// Fetch the full issue
 		fullIssue, err := jira.GetIssue(o, globals.Endpoint.Value, issue.Key, nil)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "Warning: failed to fetch %s: %s\n", issue.Key, err)
 			continue
 		}
 		filename := filepath.Join(dir, issue.Key)
-		if err := jiracli.DownloadToFile(filename, "view", fullIssue); err != nil {
+		if err := jiracli.DownloadToFile(filename, fullIssue); err != nil {
 			return err
 		}
 	}
