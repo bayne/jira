@@ -86,6 +86,7 @@ func CmdEdit(o *oreo.Client, globals *jiracli.GlobalOptions, opts *EditOptions) 
 		Meta            *jiradata.EditMeta `yaml:"meta" json:"meta"`
 		Overrides       map[string]string  `yaml:"overrides" json:"overrides"`
 		Sprints         []jiradata.Sprint  `yaml:"sprints" json:"sprints"`
+		Versions        jiradata.Versions  `yaml:"versions" json:"versions"`
 	}
 
 	var sprints []jiradata.Sprint
@@ -125,6 +126,18 @@ func CmdEdit(o *oreo.Client, globals *jiracli.GlobalOptions, opts *EditOptions) 
 		}
 	}
 
+	var versions jiradata.Versions
+	if opts.Project != "" {
+		v, err := jira.GetProjectVersions(o, globals.Endpoint.Value, opts.Project)
+		if err == nil && v != nil {
+			for _, ver := range *v {
+				if !ver.Released && !ver.Archived {
+					versions = append(versions, ver)
+				}
+			}
+		}
+	}
+
 	if opts.Issue != "" {
 		issueData, err := jira.GetIssue(o, globals.Endpoint.Value, opts.Issue, nil)
 		if err != nil {
@@ -141,6 +154,7 @@ func CmdEdit(o *oreo.Client, globals *jiracli.GlobalOptions, opts *EditOptions) 
 			Meta:      editMeta,
 			Overrides: opts.Overrides,
 			Sprints:   sprints,
+			Versions:  versions,
 		}
 		err = jiracli.EditLoop(&opts.CommonOptions, &input, &issueUpdate, func() error {
 			applyFieldMappings(&issueUpdate)
@@ -179,6 +193,7 @@ func CmdEdit(o *oreo.Client, globals *jiracli.GlobalOptions, opts *EditOptions) 
 			Meta:      editMeta,
 			Overrides: opts.Overrides,
 			Sprints:   sprints,
+			Versions:  versions,
 		}
 		err = jiracli.EditLoop(&opts.CommonOptions, &input, &issueUpdate, func() error {
 			applyFieldMappings(&issueUpdate)

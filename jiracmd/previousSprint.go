@@ -64,7 +64,7 @@ func CmdPreviousSprint(o *oreo.Client, globals *jiracli.GlobalOptions, opts *Pre
 	sprint := data.Values[opts.Offset.Value]
 	issues, err := jira.Search(o, globals.Endpoint.Value, &jira.SearchOptions{
 		Query:       "sprint = " + strconv.Itoa(sprint.Id),
-		QueryFields: "assignee,created,priority,customfield_10105,customfield_10106,reporter,status,summary,updated,issuetype,labels",
+		QueryFields: "assignee,created,priority,customfield_10105,customfield_10106,reporter,status,summary,updated,issuetype,fixVersions",
 	}, jira.WithExpand("changelog"))
 	if err != nil {
 		return err

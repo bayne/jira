@@ -185,6 +185,15 @@ func TemplateProcessor() *template.Template {
 			}
 			return strings.Join(vals, sep)
 		},
+		"mapField": func(field string, content []interface{}) []interface{} {
+			vals := make([]interface{}, len(content))
+			for i, item := range content {
+				if m, ok := item.(map[string]interface{}); ok {
+					vals[i] = m[field]
+				}
+			}
+			return vals
+		},
 		"abbrev": func(max int, content string) string {
 			if len(content) > max && max > 2 {
 				var buffer bytes.Buffer
