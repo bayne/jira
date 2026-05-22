@@ -22,6 +22,7 @@ import (
 	"github.com/mgutz/ansi"
 	wordwrap "github.com/mitchellh/go-wordwrap"
 	"github.com/olekukonko/tablewriter"
+	"github.com/pmezard/go-difflib/difflib"
 	"golang.org/x/crypto/ssh/terminal"
 )
 
@@ -167,6 +168,34 @@ func TemplateProcessor() *template.Template {
 		},
 		"color": func(color string) string {
 			return ansi.ColorCode(color)
+		},
+		"colorDiff": func(from, to string) string {
+			diff := difflib.UnifiedDiff{
+				A:       difflib.SplitLines(from),
+				B:       difflib.SplitLines(to),
+				Context: 3,
+			}
+			result, _ := difflib.GetUnifiedDiffString(diff)
+			if result == "" {
+				return ""
+			}
+			red := ansi.ColorCode("red")
+			green := ansi.ColorCode("green")
+			reset := ansi.ColorCode("reset")
+			var buf bytes.Buffer
+			for _, line := range strings.Split(strings.TrimSuffix(result, "\n"), "\n") {
+				if strings.HasPrefix(line, "---") || strings.HasPrefix(line, "+++") || strings.HasPrefix(line, "@@") {
+					continue
+				}
+				if strings.HasPrefix(line, "-") {
+					buf.WriteString(red + line + reset + "\n")
+				} else if strings.HasPrefix(line, "+") {
+					buf.WriteString(green + line + reset + "\n")
+				} else {
+					buf.WriteString(line + "\n")
+				}
+			}
+			return strings.TrimSuffix(buf.String(), "\n")
 		},
 		"remLineBreak": func(content string) string {
 			return strings.Replace(strings.Replace(content, string('\r'), string(' '), -1), string('\n'), string(' '), -1)
