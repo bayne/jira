@@ -120,6 +120,21 @@ type GlobalOptions struct {
 	// For single results, saves to a file in the current directory.
 	// For list results, creates a subdirectory and fetches/saves each issue.
 	Download figtree.BoolOption `yaml:"download,omitempty" json:"download,omitempty"`
+
+	// User-Agent components used to identify this integration on every
+	// request per Disney AES REST client guidelines.
+	AppName      figtree.StringOption `yaml:"app-name,omitempty" json:"app-name,omitempty"`
+	Contact      figtree.StringOption `yaml:"contact,omitempty" json:"contact,omitempty"`
+	Runtime      figtree.StringOption `yaml:"runtime,omitempty" json:"runtime,omitempty"`
+	Hostname     figtree.StringOption `yaml:"hostname,omitempty" json:"hostname,omitempty"`
+	AwsAccountID figtree.StringOption `yaml:"aws-account-id,omitempty" json:"aws-account-id,omitempty"`
+	AwsRegion    figtree.StringOption `yaml:"aws-region,omitempty" json:"aws-region,omitempty"`
+	Environment  figtree.StringOption `yaml:"environment,omitempty" json:"environment,omitempty"`
+
+	// ValidateToken controls whether each command begins with a probe
+	// against /rest/api/2/myself to confirm the PAT or api-token is still
+	// accepted. Defaults to false to keep one-shot CLI calls cheap.
+	ValidateToken figtree.BoolOption `yaml:"validate-token,omitempty" json:"validate-token,omitempty"`
 }
 
 type CommonOptions struct {
@@ -180,17 +195,31 @@ func register(app *kingpin.Application, o *oreo.Client, fig *figtree.FigTree) {
 	app.Flag("user", "user name used within the Jira service").Short('u').SetValue(&globals.User)
 	app.Flag("login", "login name that corresponds to the user used for authentication").SetValue(&globals.Login)
 	app.Flag("download", "Download results to files in current directory").Short('D').SetValue(&globals.Download)
+	app.Flag("app-name", "Application name used in the User-Agent header").SetValue(&globals.AppName)
+	app.Flag("contact", "Contact (team DL or addresses) used in the User-Agent header").SetValue(&globals.Contact)
+	app.Flag("runtime", "Where this is running (e.g. aws-lambda, aws-ecs, kubernetes, local-dev)").SetValue(&globals.Runtime)
+	app.Flag("hostname", "Hostname or worker label used in the User-Agent header").SetValue(&globals.Hostname)
+	app.Flag("aws-account-id", "12-digit AWS account ID used in the User-Agent header").SetValue(&globals.AwsAccountID)
+	app.Flag("aws-region", "AWS region used in the User-Agent header").SetValue(&globals.AwsRegion)
+	app.Flag("environment", "Environment (prod, nonprod, ...) used in the User-Agent header").SetValue(&globals.Environment)
+	app.Flag("validate-token", "Probe /rest/api/2/myself before running to confirm the token is still valid").SetValue(&globals.ValidateToken)
+
+	// Centralize retry handling in our post-callback so we can apply
+	// exponential backoff with jitter and honor Retry-After uniformly.
+	o = o.WithRetries(0)
 
 	o = o.WithPreCallback(func(req *http.Request) (*http.Request, error) {
+		// Set (not Add) so retried requests don't accumulate duplicate
+		// User-Agent or Authorization headers.
+		req.Header.Set("User-Agent", BuildUserAgent(&globals))
+
 		if globals.AuthMethod() == "api-token" {
-			// need to set basic auth header with user@domain:api-token
 			token := globals.GetPass()
 			authHeader := fmt.Sprintf("Basic %s", base64.StdEncoding.EncodeToString([]byte(fmt.Sprintf("%s:%s", globals.Login.Value, token))))
-			req.Header.Add("Authorization", authHeader)
+			req.Header.Set("Authorization", authHeader)
 		} else if globals.AuthMethod() == "bearer-token" {
 			token := globals.GetPass()
-			authHeader := fmt.Sprintf("Bearer %s", token)
-			req.Header.Add("Authorization", authHeader)
+			req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", token))
 		}
 		return req, nil
 	})
@@ -213,11 +242,25 @@ func register(app *kingpin.Application, o *oreo.Client, fig *figtree.FigTree) {
 				return o.Do(req)
 			}
 		} else if globals.AuthMethodIsToken() && resp.StatusCode == 401 {
-			globals.SetPass("")
-			return o.Do(req)
+			// AES guidance: do NOT loop on 401 — the token is bad or
+			// revoked. Clear the in-memory copy so a subsequent invocation
+			// re-reads from the configured source, log an actionable
+			// message, and let the caller see the 401.
+			globals.ClearCachedPass()
+			log.Errorf(
+				"%s status=401 method=%s path=%s msg=\"authentication rejected; replace the PAT or api-token (not retrying)\"",
+				logContext(&globals), req.Method, req.URL.Path,
+			)
+			return resp, nil
 		}
 		return resp, nil
 	})
+
+	// Retry callback handles 408/429/504 (and 5xx now that we disabled
+	// oreo's built-in retry) with backoff + jitter. We pass a getter so the
+	// callback uses the current `o` value (after preActions add transports,
+	// proxies, etc.) instead of a stale snapshot.
+	o = o.WithPostCallback(retryCallback(func() *oreo.Client { return o }, &globals))
 
 	for _, command := range globalCommandRegistry {
 		copy := command
@@ -255,6 +298,12 @@ func register(app *kingpin.Application, o *oreo.Client, fig *figtree.FigTree) {
 			}
 			if globals.Login.Value == "" {
 				globals.Login = globals.User
+			}
+			if globals.ValidateToken.Value && globals.AuthMethodIsToken() {
+				if err := ValidateToken(o, &globals); err != nil {
+					log.Errorf("%s", err)
+					panic(Exit{Code: 1})
+				}
 			}
 			return nil
 		})

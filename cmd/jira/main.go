@@ -20,8 +20,11 @@ type oreoLogger struct {
 
 var log = logging.MustGetLogger("jira")
 
+// Printf intercepts oreo's request/response trace dumps and scrubs any
+// Authorization headers, session cookies, or credential-looking query
+// parameters before forwarding to the debug logger.
 func (ol *oreoLogger) Printf(format string, args ...interface{}) {
-	ol.logger.Debugf(format, args...)
+	ol.logger.Debugf(format, jiracli.RedactArgs(args)...)
 }
 
 func main() {

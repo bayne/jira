@@ -50,6 +50,14 @@ func (o *GlobalOptions) GetPasswordPath() string {
 	return o.PasswordSourcePath.Value
 }
 
+// ClearCachedPass drops the in-memory copy of the credential but leaves any
+// configured backend (keyring/pass/gopass) untouched. Use this after a 401
+// so the next request prompts or re-reads from the source instead of
+// retrying with a known-bad value.
+func (o *GlobalOptions) ClearCachedPass() {
+	o.cachedPassword = ""
+}
+
 func (o *GlobalOptions) GetPass() string {
 	if o.cachedPassword != "" {
 		return o.cachedPassword
