@@ -2,29 +2,45 @@ package jira
 
 import (
 	"encoding/json"
+	"strconv"
+	"strings"
+
 	"github.com/go-jira/jira/jiradata"
 )
 
+// Sprints fetches all sprints for a board, following pagination. An empty
+// states list returns sprints in any state.
 func Sprints(ua HttpClient, endpoint string, board string, states []string) (*jiradata.SprintResults, error) {
-	uri := URLJoin(endpoint, "rest/agile/1.0/board", board, "sprint")
-	uri += "?state=" + states[0]
-	for state := range states[1:] {
-		uri += "&state=" + states[state]
-	}
-	resp, err := ua.GetJSON(uri)
-	if err != nil {
-		return nil, err
-	}
-	defer resp.Body.Close()
+	results := &jiradata.SprintResults{IsLast: true}
+	startAt := 0
+	for {
+		uri := URLJoin(endpoint, "rest/agile/1.0/board", board, "sprint")
+		uri += "?startAt=" + strconv.Itoa(startAt)
+		if len(states) > 0 {
+			uri += "&state=" + strings.Join(states, ",")
+		}
+		resp, err := ua.GetJSON(uri)
+		if err != nil {
+			return nil, err
+		}
+		if resp.StatusCode != 200 {
+			err := responseError(resp)
+			resp.Body.Close()
+			return nil, err
+		}
 
-	if resp.StatusCode != 200 {
-		return nil, responseError(resp)
+		page := &jiradata.SprintResults{}
+		err = json.NewDecoder(resp.Body).Decode(page)
+		resp.Body.Close()
+		if err != nil {
+			return nil, err
+		}
+		results.MaxResults = page.MaxResults
+		results.Values = append(results.Values, page.Values...)
+		if page.IsLast || len(page.Values) == 0 {
+			break
+		}
+		startAt += len(page.Values)
 	}
-
-	page := &jiradata.SprintResults{}
-	err = json.NewDecoder(resp.Body).Decode(page)
-	if err != nil {
-		return nil, err
-	}
-	return page, nil
+	return results, nil
 }

@@ -421,6 +421,7 @@ var AllTemplates = map[string]string{
 	"mine":           defaultMineTemplate,
 	"request":        defaultDebugTemplate,
 	"sprint":         defaultSprintTemplate,
+	"sprints":        defaultSprintsTemplate,
 	"subtask":        defaultSubtaskTemplate,
 	"table":          defaultTableTemplate,
 	"transition":     defaultTransitionTemplate,
@@ -509,6 +510,9 @@ votes: {{ .fields.votes.votes}}
 {{end -}}
 {{if .fields.labels -}}
 labels: {{ join ", " .fields.labels }}
+{{end -}}
+{{if .fields.fixVersions -}}
+fixVersions: {{ range .fields.fixVersions }}{{ .name }} {{end}}
 {{end -}}
 description: |
   {{ or .fields.description "" | indent 2 }}
@@ -773,6 +777,26 @@ End: {{ .sprint.endDate }}
 Point Distribution:
 {{ range .point_distribution }}  {{ .name | printf "%-20s" }} {{ .points | printf "%3d" }}
 {{ end }}{{ end -}}`
+
+const defaultSprintsTemplate = `{{/* sprints table template */ -}}
+{{- headers "ID" "Name" "State" "Start" "End" -}}
+{{- range .values -}}
+  {{- row -}}
+  {{- cell .id -}}
+  {{- cell .name -}}
+  {{- cell .state -}}
+  {{- if .startDate -}}
+    {{- cell (index (split "T" .startDate) 0) -}}
+  {{- else -}}
+    {{- cell "-" -}}
+  {{- end -}}
+  {{- if .endDate -}}
+    {{- cell (index (split "T" .endDate) 0) -}}
+  {{- else -}}
+    {{- cell "-" -}}
+  {{- end -}}
+{{- end -}}
+`
 
 const defaultMineTemplate = `{{/* table template */ -}}
 {{$w := 80 -}}

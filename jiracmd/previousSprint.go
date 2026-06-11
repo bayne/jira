@@ -10,6 +10,7 @@ import (
 	"gopkg.in/alecthomas/kingpin.v2"
 	"sort"
 	"strconv"
+	"time"
 )
 
 type PreviousSprintOptions struct {
@@ -50,18 +51,49 @@ func CmdPreviousSprintUsage(cmd *kingpin.CmdClause, opts *PreviousSprintOptions,
 	return nil
 }
 
+type datedSprint struct {
+	sprint    jiradata.Sprint
+	startDate time.Time
+}
+
+// previousSprints returns closed sprints whose start date is before now,
+// ordered most recently started first. The active sprint is excluded so
+// that offset 0 is the sprint before the current one.
+func previousSprints(sprints []jiradata.Sprint, now time.Time) []datedSprint {
+	previous := []datedSprint{}
+	for _, sprint := range sprints {
+		if sprint.State != "closed" {
+			continue
+		}
+		startDate, err := time.Parse(time.RFC3339, sprint.StartDate)
+		if err != nil {
+			continue
+		}
+		if startDate.After(now) {
+			continue
+		}
+		previous = append(previous, datedSprint{sprint: sprint, startDate: startDate})
+	}
+	sort.Slice(previous, func(i, j int) bool {
+		return previous[i].startDate.After(previous[j].startDate)
+	})
+	return previous
+}
+
 func CmdPreviousSprint(o *oreo.Client, globals *jiracli.GlobalOptions, opts *PreviousSprintOptions) error {
-	data, err := jira.Sprints(o, globals.Endpoint.Value, globals.DefaultBoard.Value, []string{"closed"})
+	data, err := jira.Sprints(o, globals.Endpoint.Value, globals.DefaultBoard.Value, nil)
 	if err != nil {
 		return err
 	}
-	if len(data.Values) == 0 {
-		return errors.New("There are no closed sprints")
+	previous := previousSprints(data.Values, time.Now())
+	if len(previous) == 0 {
+		return errors.New("There are no sprints that started before now")
 	}
-	sort.Slice(data.Values, func(i, j int) bool {
-		return data.Values[i].CompleteDate > data.Values[j].CompleteDate
-	})
-	sprint := data.Values[opts.Offset.Value]
+	offset := int(opts.Offset.Value)
+	if offset < 0 || offset >= len(previous) {
+		return errors.Errorf("Offset %d is out of range, there are only %d previous sprints", offset, len(previous))
+	}
+	sprint := previous[offset].sprint
 	issues, err := jira.Search(o, globals.Endpoint.Value, &jira.SearchOptions{
 		Query:       "sprint = " + strconv.Itoa(sprint.Id),
 		QueryFields: "assignee,created,priority,customfield_10105,customfield_10106,reporter,status,summary,updated,issuetype,fixVersions",
