@@ -18,6 +18,7 @@ func RegisterAllCommands() {
 	jiracli.RegisterCommand(jiracli.CommandRegistry{Command: "components", Entry: CmdComponentsRegistry()})
 	jiracli.RegisterCommand(jiracli.CommandRegistry{Command: "create", Entry: CmdCreateRegistry()})
 	jiracli.RegisterCommand(jiracli.CommandRegistry{Command: "createmeta", Entry: CmdCreateMetaRegistry()})
+	jiracli.RegisterCommand(jiracli.CommandRegistry{Command: "crawl", Entry: CmdCrawlRegistry()})
 	jiracli.RegisterCommand(jiracli.CommandRegistry{Command: "sprints", Entry: CmdSprintsRegistry()})
 	jiracli.RegisterCommand(jiracli.CommandRegistry{Command: "current", Entry: CmdCurrentSprintRegistry()})
 	jiracli.RegisterCommand(jiracli.CommandRegistry{Command: "next", Entry: CmdNextSprintRegistry()})

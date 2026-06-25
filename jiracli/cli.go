@@ -14,6 +14,7 @@ import (
 	"runtime/debug"
 	"strconv"
 	"strings"
+	"sync"
 
 	"github.com/coryb/figtree"
 	"github.com/coryb/oreo"
@@ -135,6 +136,17 @@ type GlobalOptions struct {
 	// against /rest/api/2/myself to confirm the PAT or api-token is still
 	// accepted. Defaults to false to keep one-shot CLI calls cheap.
 	ValidateToken figtree.BoolOption `yaml:"validate-token,omitempty" json:"validate-token,omitempty"`
+
+	// RateLimit caps outbound requests at this many per second using a token
+	// bucket, smoothing the cadence of high-volume commands (like crawl) so we
+	// trip server rate limits less often. 0 (the default) disables pacing, so
+	// one-shot commands are unaffected.
+	RateLimit figtree.Float64Option `yaml:"rate-limit,omitempty" json:"rate-limit,omitempty"`
+
+	// RateBurst is the token-bucket burst capacity: how many requests may be
+	// sent back-to-back before pacing engages. Only used when RateLimit > 0;
+	// defaults to one second's worth of tokens (RateLimit) when unset.
+	RateBurst figtree.Float64Option `yaml:"rate-burst,omitempty" json:"rate-burst,omitempty"`
 }
 
 type CommonOptions struct {
@@ -203,12 +215,39 @@ func register(app *kingpin.Application, o *oreo.Client, fig *figtree.FigTree) {
 	app.Flag("aws-region", "AWS region used in the User-Agent header").SetValue(&globals.AwsRegion)
 	app.Flag("environment", "Environment (prod, nonprod, ...) used in the User-Agent header").SetValue(&globals.Environment)
 	app.Flag("validate-token", "Probe /rest/api/2/myself before running to confirm the token is still valid").SetValue(&globals.ValidateToken)
+	app.Flag("rate-limit", "Cap outbound requests at N per second (0 = unlimited)").SetValue(&globals.RateLimit)
+	app.Flag("rate-burst", "Token-bucket burst capacity for --rate-limit (default: one second of tokens)").SetValue(&globals.RateBurst)
 
 	// Centralize retry handling in our post-callback so we can apply
 	// exponential backoff with jitter and honor Retry-After uniformly.
 	o = o.WithRetries(0)
 
+	// Lazily built on the first request because globals are not populated with
+	// flag/config values until after command-line parsing, which happens after
+	// these callbacks are registered. nil means rate limiting is disabled.
+	var (
+		limiterOnce sync.Once
+		limiter     *tokenBucket
+	)
+
 	o = o.WithPreCallback(func(req *http.Request) (*http.Request, error) {
+		limiterOnce.Do(func() {
+			if rate := globals.RateLimit.Value; rate > 0 {
+				burst := globals.RateBurst.Value
+				if burst <= 0 {
+					burst = rate
+				}
+				limiter = newTokenBucket(rate, burst)
+			}
+		})
+		// Acquire a token before doing any work so we pace network egress;
+		// retried requests flow through here too and are paced as well.
+		if limiter != nil {
+			if err := limiter.wait(req.Context()); err != nil {
+				return req, err
+			}
+		}
+
 		// Set (not Add) so retried requests don't accumulate duplicate
 		// User-Agent or Authorization headers.
 		req.Header.Set("User-Agent", BuildUserAgent(&globals))
