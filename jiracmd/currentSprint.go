@@ -32,6 +32,9 @@ func resolveFirstAssignee(issue *jiradata.Issue) string {
 	}
 	if a, ok := issue.Fields["assignee"]; ok && a != nil {
 		if m, ok := a.(map[string]interface{}); ok {
+			if name, ok := m["displayName"].(string); ok && name != "" {
+				return name
+			}
 			if name, ok := m["name"].(string); ok && name != "" {
 				return name
 			}
@@ -41,7 +44,7 @@ func resolveFirstAssignee(issue *jiradata.Issue) string {
 }
 
 func hasMultipleSprints(issue *jiradata.Issue) bool {
-	sprints, ok := issue.Fields["customfield_10105"]
+	sprints, ok := issue.Fields["customfield_10020"]
 	if !ok || sprints == nil {
 		return false
 	}
@@ -59,7 +62,7 @@ func computePointDistribution(issues jiradata.Issues) []PointAllocation {
 			continue
 		}
 		assignee := issue.Fields[firstAssigneeField].(string)
-		if pts, ok := issue.Fields["customfield_10106"]; ok && pts != nil {
+		if pts, ok := issue.Fields["customfield_10047"]; ok && pts != nil {
 			switch v := pts.(type) {
 			case float64:
 				totals[assignee] += int(v)
@@ -129,7 +132,7 @@ func CmdCurrentSprint(o *oreo.Client, globals *jiracli.GlobalOptions, opts *Curr
 	sprint := &data.Values[0]
 	issues, err := jira.Search(o, globals.Endpoint.Value, &jira.SearchOptions{
 		Query:       "sprint = " + strconv.Itoa(sprint.Id),
-		QueryFields: "assignee,created,priority,customfield_10105,customfield_10106,reporter,status,summary,updated,issuetype,fixVersions",
+		QueryFields: "assignee,created,priority,customfield_10020,customfield_10047,reporter,status,summary,updated,issuetype,fixVersions",
 	}, jira.WithExpand("changelog"))
 	sort.Slice(issues.Issues, func(i, j int) bool {
 		return issues.Issues[i].Fields["status"].(map[string]interface{})["name"].(string) > issues.Issues[j].Fields["status"].(map[string]interface{})["name"].(string)

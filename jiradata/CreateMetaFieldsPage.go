@@ -16,9 +16,19 @@ type CreateMetaField struct {
 
 // CreateMetaFieldsPage is the paginated response from
 // GET /rest/api/2/issue/createmeta/{projectIdOrKey}/issuetypes/{issueTypeId}
+// Jira Server/DC returns the page items under "values", Jira Cloud under "fields".
 type CreateMetaFieldsPage struct {
 	MaxResults int                `json:"maxResults,omitempty" yaml:"maxResults,omitempty"`
 	StartAt    int                `json:"startAt,omitempty" yaml:"startAt,omitempty"`
 	Total      int                `json:"total,omitempty" yaml:"total,omitempty"`
 	Values     []*CreateMetaField `json:"values,omitempty" yaml:"values,omitempty"`
+	Fields     []*CreateMetaField `json:"fields,omitempty" yaml:"fields,omitempty"`
+}
+
+// PageValues returns the page items regardless of which key the server used.
+func (p *CreateMetaFieldsPage) PageValues() []*CreateMetaField {
+	if len(p.Values) > 0 {
+		return p.Values
+	}
+	return p.Fields
 }

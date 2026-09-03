@@ -778,4 +778,12 @@ type SearchResults struct {
 	StartAt         int               `json:"startAt,omitempty" yaml:"startAt,omitempty"`
 	Total           int               `json:"total,omitempty" yaml:"total,omitempty"`
 	WarningMessages WarningMessages   `json:"warningMessages,omitempty" yaml:"warningMessages,omitempty"`
+
+	// The following fields are returned by the enhanced JQL search endpoint
+	// (POST /rest/api/3/search/jql), which replaced the deprecated
+	// /rest/api/2/search endpoint. That endpoint uses cursor-based pagination
+	// (NextPageToken/IsLast) instead of the StartAt/Total scheme above, and
+	// never populates Total.
+	NextPageToken string `json:"nextPageToken,omitempty" yaml:"nextPageToken,omitempty"`
+	IsLast        bool   `json:"isLast,omitempty" yaml:"isLast,omitempty"`
 }

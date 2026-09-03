@@ -253,13 +253,20 @@ func TemplateProcessor() *template.Template {
 			if len(content) < 1 {
 				return ""
 			}
-			matches := re.FindStringSubmatch(content[0].(string))
-
-			if len(matches) > 1 {
-				return matches[1]
-			} else {
-				return ""
+			switch v := content[0].(type) {
+			case string:
+				// Jira Server/DC returns sprints as toString blobs
+				matches := re.FindStringSubmatch(v)
+				if len(matches) > 1 {
+					return matches[1]
+				}
+			case map[string]interface{}:
+				// Jira Cloud returns sprints as objects
+				if name, ok := v["name"].(string); ok {
+					return name
+				}
 			}
+			return ""
 		},
 		"fieldLabel": func(fieldID string) string {
 			if fm := getFieldMap(); fm != nil {
@@ -495,9 +502,6 @@ issuetype: {{ .fields.issuetype.name }}
 assignee: {{ .fields.assignee.displayName }}
 {{end -}}
 reporter: {{ if .fields.reporter }}{{ .fields.reporter.displayName }}{{end}}
-{{if .fields.customfield_10110 -}}
-watchers: {{ range .fields.customfield_10110 }}{{ .displayName }} {{end}}
-{{end -}}
 {{if .fields.issuelinks -}}
 blockers: {{ range .fields.issuelinks }}{{if .outwardIssue}}{{ .outwardIssue.key }}[{{.outwardIssue.fields.status.name}}]{{end}}{{end}}
 depends: {{ range .fields.issuelinks }}{{if .inwardIssue}}{{ .inwardIssue.key }}[{{.inwardIssue.fields.status.name}}]{{end}}{{end}}
@@ -542,18 +546,11 @@ fields:
   assignee:
     emailAddress: {{ .overrides.assignee }}
   {{- else if .fields.assignee }}
-  assignee: {{if .fields.assignee.name}}
-    emailAddress: {{ or .fields.assignee.name}}
-  {{- else }}
-    emailAddress: {{.fields.assignee.emailAddress}}{{end}}{{end}}{{end}}
+  assignee:
+    emailAddress: {{ .fields.assignee.emailAddress }}{{end}}{{end}}
 {{- if .meta.fields.reporter}}
   reporter:
     emailAddress: {{ if .overrides.reporter }}{{ .overrides.reporter }}{{else if .fields.reporter}}{{ .fields.reporter.emailAddress }}{{end}}{{end}}
-{{- if .meta.fields.customfield_10110}}
-  # watchers
-  customfield_10110: {{ range .fields.customfield_10110 }}
-    - name: {{ .name }}{{end}}{{if .overrides.watcher}}
-    - name: {{ .overrides.watcher}}{{end}}{{end}}
 {{- if .meta.fields.priority }}
   priority: # Values: {{ range .meta.fields.priority.allowedValues }}{{.name}}, {{end}}
     name: {{ or .overrides.priority .fields.priority.name "" }}{{end}}
@@ -599,18 +596,14 @@ fields:
   assignee:
     emailAddress: {{ or .overrides.assignee "" }}{{end}}{{if .meta.fields.reporter}}
   reporter:
-    emailAddress: {{ or .overrides.reporter .overrides.login }}{{end}}{{if .meta.fields.customfield_10110}}
-  # watchers
-  customfield_10110: {{ range split "," (or .overrides.watchers "")}}
-    - name: {{.}}{{end}}
-    - name:{{end}}`
+    emailAddress: {{ or .overrides.reporter .overrides.login }}{{end}}`
 
 const defaultEpicCreateTemplate = `{{/* epic create template */ -}}
 fields:
   project:
     key: {{ or .overrides.project "" }}
   # Epic Name
-  customfield_10120: {{ or (index .overrides "epic-name") "" }}
+  customfield_10011: {{ or (index .overrides "epic-name") "" }}
   summary: >-
     {{ or .overrides.summary "" }}{{if .meta.fields.priority.allowedValues}}
   priority: # Values: {{ range .meta.fields.priority.allowedValues }}{{.name}}, {{end}}
@@ -622,11 +615,7 @@ fields:
   assignee:
     emailAddress: {{ or .overrides.assignee "" }}{{end}}{{if .meta.fields.reporter}}
   reporter:
-    emailAddress: {{ or .overrides.reporter .overrides.login }}{{end}}{{if .meta.fields.customfield_10110}}
-  # watchers
-  customfield_10110: {{ range split "," (or .overrides.watchers "")}}
-    - name: {{.}}{{end}}
-    - name:{{end}}
+    emailAddress: {{ or .overrides.reporter .overrides.login }}{{end}}
   issuetype:
     name: Epic`
 
@@ -645,11 +634,7 @@ fields:
   assignee:
     emailAddress: {{ or .overrides.assignee "" }}{{end}}{{if .meta.fields.reporter}}
   reporter:
-    emailAddress: {{ or .overrides.reporter .overrides.login }}{{end}}{{if .meta.fields.customfield_10110}}
-  # watchers
-  customfield_10110: {{ range split "," (or .overrides.watchers "")}}
-    - name: {{.}}{{end}}
-    - name:{{end}}
+    emailAddress: {{ or .overrides.reporter .overrides.login }}{{end}}
   issuetype:
     name: Sub-task
   parent:
@@ -673,10 +658,8 @@ fields:
   assignee:
     emailAddress: {{ .overrides.assignee }}
   {{- else if .fields.assignee }}
-  assignee: {{if .fields.assignee.name}}
-    emailAddress: {{ or .fields.assignee.name}}
-  {{- else }}
-    emailAddress: {{.fields.assignee.emailAddress}}{{end}}{{end}}
+  assignee:
+    emailAddress: {{ .fields.assignee.emailAddress }}{{end}}
 {{- end -}}
 {{if .meta.fields.components}}
   components: # Values: {{ range .meta.fields.components.allowedValues }}{{.name}}, {{end}}{{if .overrides.components }}{{ range (split "," .overrides.components)}}
@@ -710,12 +693,10 @@ fields:
 {{- if .meta.fields.reporter }}
   {{- if .overrides.reporter }}
   reporter:
-    name: {{ .overrides.reporter }}
+    emailAddress: {{ .overrides.reporter }}
   {{- else if .fields.reporter }}
-  reporter: {{if .fields.reporter.name}}
-    name: {{ or .fields.reporter.name}}
-  {{- else }}
-    displayName: {{.fields.reporter.displayName}}{{end}}{{end}}
+  reporter:
+    emailAddress: {{ .fields.reporter.emailAddress }}{{end}}
 {{- end -}}
 {{if .meta.fields.resolution}}
   resolution: # Values: {{ range .meta.fields.resolution.allowedValues }}{{.name}}, {{end}}
@@ -765,13 +746,13 @@ End: {{ .sprint.endDate }}
 {{- range .results.issues -}}
 {{- row -}}
     {{- cell .key -}}
-    {{- if .fields.assignee -}} {{- cell (.fields.assignee.name | abbrev 8) -}} {{- else -}} {{- cell "-" -}} {{- end -}}
+    {{- if .fields.assignee -}} {{- cell (.fields.assignee.displayName | abbrev 8) -}} {{- else -}} {{- cell "-" -}} {{- end -}}
     {{- cell (.fields.summary | abbrev 60) -}}
     {{- cell .fields.issuetype.name -}}
     {{- cell .fields.status.name -}}
-    {{- cell (or .fields.customfield_10106 "") -}}
+    {{- cell (or .fields.customfield_10047 "") -}}
     {{- cell (.fields.created | age) -}}
-    {{- cell (.fields.reporter.name | abbrev 8) -}}
+    {{- cell (.fields.reporter.displayName | abbrev 8) -}}
 {{- end -}}
 {{ if .point_distribution }}
 Point Distribution:

@@ -271,7 +271,7 @@ func GetIssueCreateMetaProject(ua HttpClient, endpoint string, projectKey string
 		if err := json.NewDecoder(resp.Body).Decode(page); err != nil {
 			return nil, err
 		}
-		allIssueTypes = append(allIssueTypes, page.Values...)
+		allIssueTypes = append(allIssueTypes, page.PageValues()...)
 		total = page.Total
 		startAt += maxResults
 	}
@@ -318,7 +318,7 @@ func findIssueTypeByName(ua HttpClient, endpoint string, projectKey, name string
 		if err := json.NewDecoder(resp.Body).Decode(page); err != nil {
 			return nil, err
 		}
-		for _, it := range page.Values {
+		for _, it := range page.PageValues() {
 			if it.Name == name {
 				return it, nil
 			}
@@ -350,7 +350,7 @@ func fetchIssueTypeFields(ua HttpClient, endpoint string, projectKey, issueTypeI
 		if err := json.NewDecoder(resp.Body).Decode(page); err != nil {
 			return nil, err
 		}
-		for _, f := range page.Values {
+		for _, f := range page.PageValues() {
 			fieldMap[f.FieldId] = &jiradata.FieldMeta{
 				AllowedValues:   f.AllowedValues,
 				AutoCompleteURL: f.AutoCompleteURL,

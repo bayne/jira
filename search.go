@@ -72,7 +72,7 @@ func (o *SearchOptions) ProvideSearchRequest() *jiradata.SearchRequest {
 	return req
 }
 
-// https://docs.atlassian.com/jira/REST/cloud/#api/2/search-searchUsingSearchRequest
+// https://developer.atlassian.com/cloud/jira/platform/rest/v3/api-group-issue-search/#api-rest-api-3-search-jql-post
 func (j *Jira) Search(sp SearchProvider, opts ...SearchOpt) (*jiradata.SearchResults, error) {
 	return Search(j.UA, j.Endpoint, sp, opts...)
 }
@@ -96,6 +96,20 @@ func WithExpand(fields ...string) SearchOpt {
 	}
 }
 
+// jqlSearchRequest is the request body for the enhanced JQL search endpoint
+// (POST /rest/api/3/search/jql). Unlike the deprecated /rest/api/2/search
+// endpoint it uses cursor-based pagination via nextPageToken (rather than
+// startAt), and expand is passed in the body as a comma-separated string
+// rather than as a query parameter.
+type jqlSearchRequest struct {
+	JQL           string   `json:"jql,omitempty"`
+	Fields        []string `json:"fields,omitempty"`
+	Expand        string   `json:"expand,omitempty"`
+	MaxResults    int      `json:"maxResults,omitempty"`
+	NextPageToken string   `json:"nextPageToken,omitempty"`
+	FieldsByKeys  bool     `json:"fieldsByKeys,omitempty"`
+}
+
 func Search(ua HttpClient, endpoint string, sp SearchProvider, opts ...SearchOpt) (*jiradata.SearchResults, error) {
 	c := &searchConfig{}
 	for _, opt := range opts {
@@ -104,21 +118,27 @@ func Search(ua HttpClient, endpoint string, sp SearchProvider, opts ...SearchOpt
 
 	req := sp.ProvideSearchRequest()
 	limit := req.MaxResults
-	if limit == 0 {
-		// max page size is 100
-		req.MaxResults = 100
+
+	body := &jqlSearchRequest{
+		JQL:          req.JQL,
+		Fields:       req.Fields,
+		FieldsByKeys: req.FieldsByKeys,
+		Expand:       strings.Join(c.expand, ","),
+		// max page size for the enhanced search endpoint is 5000; 100 keeps
+		// the per-request payload reasonable while paginating.
+		MaxResults: 100,
+	}
+	if limit > 0 && limit < body.MaxResults {
+		body.MaxResults = limit
 	}
 
 	issues := jiradata.Issues{}
 	for {
-		encoded, err := json.Marshal(req)
+		encoded, err := json.Marshal(body)
 		if err != nil {
 			return nil, err
 		}
-		uri := URLJoin(endpoint, "rest/api/2/search")
-		if len(c.expand) > 0 {
-			uri += "?expand=" + strings.Join(c.expand, ",")
-		}
+		uri := URLJoin(endpoint, "rest/api/3/search/jql")
 		resp, err := ua.Post(uri, "application/json", bytes.NewBuffer(encoded))
 		if err != nil {
 			return nil, err
@@ -139,15 +159,15 @@ func Search(ua HttpClient, endpoint string, sp SearchProvider, opts ...SearchOpt
 		}
 
 		issues = append(issues, page.Issues...)
-		// if we are done paginating just force all issues onto current
-		// response and return
-		if (limit > 0 && len(issues) >= limit) || len(issues) >= page.Total {
+		// The enhanced search endpoint reports the end of results via isLast
+		// (or an empty nextPageToken); it does not return a total count.
+		if (limit > 0 && len(issues) >= limit) || page.IsLast || page.NextPageToken == "" {
 			page.Issues = issues
 			return page, nil
 		}
-		req.StartAt = len(issues)
-		if len(issues)+req.MaxResults > limit {
-			req.MaxResults = limit - len(issues)
+		body.NextPageToken = page.NextPageToken
+		if limit > 0 && limit-len(issues) < body.MaxResults {
+			body.MaxResults = limit - len(issues)
 		}
 	}
 }
