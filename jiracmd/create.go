@@ -97,6 +97,13 @@ func CmdCreate(o *oreo.Client, globals *jiracli.GlobalOptions, opts *CreateOptio
 		}
 		futureSprints, err := jira.Sprints(o, globals.Endpoint.Value, globals.DefaultBoard.Value, []string{"future"})
 		if err == nil {
+			scheduled := []jiradata.Sprint{}
+			for _, s := range futureSprints.Values {
+				if s.StartDate != "" {
+					scheduled = append(scheduled, s)
+				}
+			}
+			futureSprints.Values = scheduled
 			sort.Slice(futureSprints.Values, func(i, j int) bool {
 				return futureSprints.Values[i].StartDate < futureSprints.Values[j].StartDate
 			})

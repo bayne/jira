@@ -437,6 +437,7 @@ var AllTemplates = map[string]string{
 	"view":           defaultViewTemplate,
 	"worklog":        defaultWorklogTemplate,
 	"worklogs":       defaultWorklogsTemplate,
+	"structure": defaultStructureTemplate,
 }
 
 const defaultDebugTemplate = "{{ . | toJson}}\n"
@@ -778,6 +779,12 @@ const defaultSprintsTemplate = `{{/* sprints table template */ -}}
   {{- end -}}
 {{- end -}}
 `
+
+const defaultStructureTemplate = `{{/* structure tree template */ -}}
+{{- $sw := sub (termWidth) 65 -}}
+{{- range .nodes }}
+{{- .prefix }}{{ .key | printf "%-12s" }} {{ .type | printf "%-12s" }} {{ .summary | abbrev $sw }} [{{ .status }}]
+{{ end -}}`
 
 const defaultMineTemplate = `{{/* table template */ -}}
 {{$w := 80 -}}

@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"io"
 	"strings"
 
 	"github.com/go-jira/jira/jiradata"
@@ -143,14 +144,17 @@ func Search(ua HttpClient, endpoint string, sp SearchProvider, opts ...SearchOpt
 		if err != nil {
 			return nil, err
 		}
-		defer resp.Body.Close()
 
 		if resp.StatusCode != 200 {
-			return nil, responseError(resp)
+			err := responseError(resp)
+			resp.Body.Close()
+			return nil, err
 		}
 
 		page := &jiradata.SearchResults{}
 		err = json.NewDecoder(resp.Body).Decode(page)
+		io.Copy(io.Discard, resp.Body)
+		resp.Body.Close()
 		if err != nil {
 			return nil, err
 		}
