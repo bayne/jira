@@ -781,9 +781,27 @@ const defaultSprintsTemplate = `{{/* sprints table template */ -}}
 `
 
 const defaultStructureTemplate = `{{/* structure tree template */ -}}
-{{- $sw := sub (termWidth) 65 -}}
-{{- range .nodes }}
-{{- .prefix }}{{ .key | printf "%-12s" }} {{ .type | printf "%-12s" }} {{ .summary | abbrev $sw }} [{{ .status }}]
+{{- $c1 := 36 -}}{{- $c2 := 12 -}}{{- $c4 := 16 -}}
+{{- $c3 := sub (sub (sub (sub 127 $c1) $c2) $c4) 3 -}}
+{{- "\033[1;48;5;237m" -}}
+{{- fit $c1 "Issue" }} {{ fit $c2 "Type" }} {{ fit $c3 "Summary" }} {{ fit $c4 "Status" -}}
+{{- "\033[K\033[0m\n" -}}
+{{ $i := 0 -}}
+{{- range .nodes -}}
+{{- $i = add $i 1 -}}
+{{- if mod $i 2 -}}{{- "\033[48;5;233m" -}}{{- else -}}{{- "\033[48;5;235m" -}}{{- end -}}
+{{- $id := printf "%s%s" .prefix .key -}}
+{{- $st := .status -}}
+{{- $icon := "·" -}}
+{{- if or (eq $st "Done") (eq $st "Closed") (eq $st "Resolved") -}}{{- $icon = "✓" -}}
+{{- else if or (eq $st "In Progress") (eq $st "In Development") -}}{{- $icon = "►" -}}
+{{- else if or (eq $st "To Do") (eq $st "Open") (eq $st "Backlog") (eq $st "New") -}}{{- $icon = "○" -}}
+{{- else if or (eq $st "In Review") (eq $st "Code Review") (eq $st "Review") -}}{{- $icon = "◎" -}}
+{{- else if eq $st "Blocked" -}}{{- $icon = "✖" -}}
+{{- end -}}
+{{- $status := printf "%s %s" $icon $st -}}
+{{- fit $c1 $id }} {{ fit $c2 .type }} {{ fit $c3 (abbrev $c3 .summary) }} {{ fit $c4 $status -}}
+{{- "\033[K\033[0m\n" -}}
 {{ end -}}`
 
 const defaultMineTemplate = `{{/* table template */ -}}

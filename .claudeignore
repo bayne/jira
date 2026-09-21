@@ -1,0 +1,39 @@
+# IDE and editor config
+.idea/
+
+# Session logs (no signal for code agents)
+.cl/
+
+# Compiled binary
+jira
+
+# Dist artifacts
+dist/
+
+# Generated dependency lock
+go.sum
+
+# Large data dumps / scratch files
+all_logs.jsonl
+labels.json
+mapping.json
+client.txt
+options.html
+tmp_*.dcb
+*.dcb
+
+# Git commit template (not code)
+.git-commit-template
+gitcommit.svg
+
+# Legacy integration test harness (Perl-based, not actively maintained)
+_t/
+
+# Changelog generation config (rarely touched)
+.chglog/
+
+# Large field-mapping JSON (binary-like data, not useful for code reasoning)
+templates-3/.jira.d/
+
+# Schema fetcher output (generated JSON, gitignored)
+schemas/*.json
